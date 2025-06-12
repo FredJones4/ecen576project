@@ -35,7 +35,9 @@ modalities = {
                    "tube_current_A_max": 300, "conversion_efficiency": 0.01,
                    "detector_efficiency": 1},
 } 
-
+def cnr(I_object, I_background, sigma):
+    """Function for readability to generate CNR."""
+    return np.abs(I_object - I_background)/sigma
 
 
 # -------------------------------------------------
@@ -71,6 +73,7 @@ def linear_attenuation(tissue, E_keV): # See p5/6 of project, with numbers
     b = tissues[tissue]["xray_mu_intercept"]
     return m * E_keV + b
 
+
 I0          = (modalities["Xray_CT"]["tube_voltage_kVp_max"]*modalities["Xray_CT"]["tube_current_A_max"])\
                 *modalities["Xray_CT"]["conversion_efficiency"]*modalities["Xray_CT"]["detector_efficiency"] 
 # I0 was 1.0, but ... calculating P = IV -> P_actual=P*conv_eff*detector_eff goes with the assumptions given.
@@ -81,9 +84,16 @@ I_tumor     = I0 * np.exp(-(linear_attenuation("tumor",  energies_keV) *
                           tissues["tumor"]["thickness_cm"]  +
                           linear_attenuation("muscle", energies_keV) *
                           tissues["muscle"]["thickness_cm"]))
+I_nerve     = I0 * np.exp(-(linear_attenuation("nerve",  energies_keV) *
+                          tissues["nerve"]["thickness_cm"]  +
+                          linear_attenuation("muscle", energies_keV) *
+                          tissues["muscle"]["thickness_cm"]))
 snr_muscle  = I_muscle / np.sqrt(I_muscle) # mu(μ)=I. Since we assume noise follows Poisson Distribution, σ=√μ=√I. and SNR= μ/σ = I/√I.
+#TODO: See if noise must be caluclated for all body flesh, not just the background (muscle)
 #NOTE: the above equation could be simplified, but is kept in this format for readability. In fact, the line of code only exists for readability.
-cnr_xray    = np.abs(I_tumor - I_muscle) / np.sqrt(I_muscle) # https://www.sciencedirect.com/topics/nursing-and-health-professions/contrast-to-noise-ratio#:~:text=%5B30%5D-,CNR,b,-where%20the%20numerator
+cnr_xray    = np.abs(I_tumor - I_muscle) / np.sqrt(I_muscle) - np.abs(I_nerve - I_muscle) / np.sqrt(I_muscle)
+# CNR_xray = cnr_nerve_to_muscle - cnr_tumor_to_muscle
+# https://www.sciencedirect.com/topics/nursing-and-health-professions/contrast-to-noise-ratio#:~:text=%5B30%5D-,CNR,b,-where%20the%20numerator
 
 # -------------------------------------------------
 # 4. Ultrasound attenuation profile
