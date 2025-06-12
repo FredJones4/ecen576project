@@ -91,7 +91,8 @@ I_nerve     = I0 * np.exp(-(linear_attenuation("nerve",  energies_keV) *
 snr_muscle  = I_muscle / np.sqrt(I_muscle) # mu(μ)=I. Since we assume noise follows Poisson Distribution, σ=√μ=√I. and SNR= μ/σ = I/√I.
 #TODO: See if noise must be caluclated for all body flesh, not just the background (muscle)
 #NOTE: the above equation could be simplified, but is kept in this format for readability. In fact, the line of code only exists for readability.
-cnr_xray    = np.abs(I_tumor - I_muscle) / np.sqrt(I_muscle) - np.abs(I_nerve - I_muscle) / np.sqrt(I_muscle)
+
+cnr_xray    = np.abs(cnr(I_tumor, I_muscle, np.sqrt(I_muscle)) - cnr(I_nerve, I_muscle, np.sqrt(I_muscle)))
 # CNR_xray = cnr_nerve_to_muscle - cnr_tumor_to_muscle
 # https://www.sciencedirect.com/topics/nursing-and-health-professions/contrast-to-noise-ratio#:~:text=%5B30%5D-,CNR,b,-where%20the%20numerator
 
