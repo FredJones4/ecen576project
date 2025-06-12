@@ -30,8 +30,8 @@ tissues = {
 
 modalities = {
     "MRI":        {"voxel_volume_mm3": 1.0, "SNR_ref": 20.0},
-    "Ultrasound": {"input_intensity_W_cm2": 0.1, "electronic_noise_std_W_cm2": 0.001},
-    "Xray_CT":    {"noise_distribution": "Poisson", "tube_voltage_kVp_max": 120},
+    "Ultrasound": {"input_intensity_W_cm2": 0.1, "electronic_noise_std_W_cm2": 0.001}, # not listed: speckle is multiplicative noise w/ Rayleigh Distribution w/ mu=1, array size and frequency can be changed, assume linear array to avoid refraction.
+    "Xray_CT":    {"noise_distribution": "Poisson", "tube_voltage_kVp_max": 120}, # not listed: Max current 300 A, 1% conversion efficiency at anode, detector is 100% efficient.
 }
 
 # -------------------------------------------------

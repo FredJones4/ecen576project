@@ -32,8 +32,11 @@ modalities = {
     "Ultrasound": {"input_intensity_W_cm2": 0.1, "electronic_noise_std_W_cm2": 0.001,
                    "noise_distribution": "Gaussian + Rayleigh"},
     "Xray_CT":    {"noise_distribution": "Poisson", "tube_voltage_kVp_max": 120,
-                   "tube_current_A_max": 300, "conversion_efficiency": 0.01},
-}
+                   "tube_current_A_max": 300, "conversion_efficiency": 0.01,
+                   "detector_efficiency": 1},
+} 
+
+
 
 # -------------------------------------------------
 # 2. MRI Contrast-to-Noise
@@ -54,22 +57,26 @@ cnr_tumor_muscle    = np.abs(signals["tumor"] - signals["muscle"]) / sigma_noise
 # -------------------------------------------------
 # 3. X-ray Contrast-to-Noise
 # -------------------------------------------------
-energies_keV           = np.linspace(20, 120, 200)
+energies_keV           = np.linspace(20, 150, 200) #NOTE: changed max from 120 to 150
 thickness_cm_path      = tissues["muscle"]["thickness_cm"] + tissues["tumor"]["thickness_cm"]
 
-def linear_attenuation(tissue, E_keV):
+def linear_attenuation(tissue, E_keV): # See p5/6 of project,
+    # taken from Physical Properties of Tissue: A Comprehensive Reference Book by FA Duck (1990). Made available to the class and available
+    #online by the Harold B Lee Library. 
     m = tissues[tissue]["xray_mu_linear"]
     b = tissues[tissue]["xray_mu_intercept"]
     return m * E_keV + b
 
-I0          = 1.0
-I_muscle    = I0 * np.exp(-linear_attenuation("muscle", energies_keV) *
+I0          = (modalities["Xray_CT"]["tube_voltage_kVp_max"]*modalities["Xray_CT"]["tube_current_A_max"])\
+                *modalities["Xray_CT"]["conversion_efficiency"]*modalities["Xray_CT"]["detector_efficiency"] # was 1.0, but ... calculating P = IV -> P_actual=P*conv_eff*detector_eff
+I_muscle    = I0 * np.exp(-linear_attenuation("muscle", energies_keV) * 
                           tissues["muscle"]["thickness_cm"])
 I_tumor     = I0 * np.exp(-(linear_attenuation("tumor",  energies_keV) *
                           tissues["tumor"]["thickness_cm"]  +
                           linear_attenuation("muscle", energies_keV) *
                           tissues["muscle"]["thickness_cm"]))
-snr_muscle  = I_muscle / np.sqrt(I_muscle)
+snr_muscle  = I_muscle / np.sqrt(I_muscle) # mu(μ)=I. Since this follows Poisson Distribution, σ=√μ=√I. and SNR= μ/σ = I/√I.
+#NOTE: the above equation could be simplified, but is kept in this format for readability.
 cnr_xray    = np.abs(I_tumor - I_muscle) / np.sqrt(I_muscle)
 
 # -------------------------------------------------
