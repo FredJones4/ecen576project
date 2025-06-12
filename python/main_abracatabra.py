@@ -41,26 +41,30 @@ modalities = {
 # -------------------------------------------------
 # 2. MRI Contrast-to-Noise
 # -------------------------------------------------
-TR_ms         = 500
-TE_values_ms  = np.linspace(5, 100, 40)
-
-def mri_signal(T1, T2, TR, TE, S0=1.0):
+TR_ms         = 500 # repetition time (ms)
+TE_values_ms  = np.linspace(5, 100, 40) # echo times for plotting
+  
+def mri_signal(T1, T2, TR, TE, S0=1.0): # Normalized S0
     return S0 * (1 - np.exp(-TR / T1)) * np.exp(-TE / T2)
+# For details and reasons behind the above calculation, see: https://radiopaedia.org/articles/spin-echo-sequences  || and also
+# https://www.cis.rit.edu/htbooks/mri/chap-10/chap-10.htm#:~:text=The%20signal%20equations%20for%20the,Inversion%20Recovery%20(180%2D90)
+
 
 signals = {t: mri_signal(tissues[t]["T1_ms"], tissues[t]["T2_ms"],
                          TR_ms, TE_values_ms)
            for t in ["fat", "muscle", "tumor", "nerve"]}
-
-sigma_noise         = signals["muscle"][0] / modalities["MRI"]["SNR_ref"]
-cnr_tumor_muscle    = np.abs(signals["tumor"] - signals["muscle"]) / sigma_noise
+# Contrast-to-noise ratio (CNR) between tumor and muscle
+# Assume noise σ_ref gives SNR_ref=20 at TE→0 for muscle
+sigma_noise         = signals["muscle"][0] / modalities["MRI"]["SNR_ref"] # page 77 of textbook, solve for σ_ref based on first value
+cnr_tumor_muscle    = np.abs(signals["tumor"] - signals["muscle"]) / sigma_noise  # This is an array of values; see also HW 9
 
 # -------------------------------------------------
 # 3. X-ray Contrast-to-Noise
 # -------------------------------------------------
 energies_keV           = np.linspace(20, 150, 200) #NOTE: changed max from 120 to 150
-thickness_cm_path      = tissues["muscle"]["thickness_cm"] + tissues["tumor"]["thickness_cm"]
+thickness_cm_path      = tissues["muscle"]["thickness_cm"] + tissues["tumor"]["thickness_cm"] # unused
 
-def linear_attenuation(tissue, E_keV): # See p5/6 of project,
+def linear_attenuation(tissue, E_keV): # See p5/6 of project, with numbers
     # taken from Physical Properties of Tissue: A Comprehensive Reference Book by FA Duck (1990). Made available to the class and available
     #online by the Harold B Lee Library. 
     m = tissues[tissue]["xray_mu_linear"]
@@ -68,16 +72,18 @@ def linear_attenuation(tissue, E_keV): # See p5/6 of project,
     return m * E_keV + b
 
 I0          = (modalities["Xray_CT"]["tube_voltage_kVp_max"]*modalities["Xray_CT"]["tube_current_A_max"])\
-                *modalities["Xray_CT"]["conversion_efficiency"]*modalities["Xray_CT"]["detector_efficiency"] # was 1.0, but ... calculating P = IV -> P_actual=P*conv_eff*detector_eff
-I_muscle    = I0 * np.exp(-linear_attenuation("muscle", energies_keV) * 
+                *modalities["Xray_CT"]["conversion_efficiency"]*modalities["Xray_CT"]["detector_efficiency"] 
+# I0 was 1.0, but ... calculating P = IV -> P_actual=P*conv_eff*detector_eff goes with the assumptions given.
+I_muscle    = I0 * np.exp(-linear_attenuation("muscle", energies_keV) * #TODO: update the ∑(μ * x) path based on where we are imaging through
+                          # TODO: see if we can make the assumption that CT and X-ray will have the same CNR, given different paths all around
                           tissues["muscle"]["thickness_cm"])
 I_tumor     = I0 * np.exp(-(linear_attenuation("tumor",  energies_keV) *
                           tissues["tumor"]["thickness_cm"]  +
                           linear_attenuation("muscle", energies_keV) *
                           tissues["muscle"]["thickness_cm"]))
-snr_muscle  = I_muscle / np.sqrt(I_muscle) # mu(μ)=I. Since this follows Poisson Distribution, σ=√μ=√I. and SNR= μ/σ = I/√I.
-#NOTE: the above equation could be simplified, but is kept in this format for readability.
-cnr_xray    = np.abs(I_tumor - I_muscle) / np.sqrt(I_muscle)
+snr_muscle  = I_muscle / np.sqrt(I_muscle) # mu(μ)=I. Since we assume noise follows Poisson Distribution, σ=√μ=√I. and SNR= μ/σ = I/√I.
+#NOTE: the above equation could be simplified, but is kept in this format for readability. In fact, the line of code only exists for readability.
+cnr_xray    = np.abs(I_tumor - I_muscle) / np.sqrt(I_muscle) # https://www.sciencedirect.com/topics/nursing-and-health-professions/contrast-to-noise-ratio#:~:text=%5B30%5D-,CNR,b,-where%20the%20numerator
 
 # -------------------------------------------------
 # 4. Ultrasound attenuation profile
