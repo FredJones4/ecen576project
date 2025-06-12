@@ -8,7 +8,6 @@ import numpy as np
 import abracatabra                      # ⭐ NEW
 # Matplotlib is still needed, but we let AbracaTABra create the figures
 import matplotlib.pyplot as plt
-
 # -------------------------------------------------
 # 1. Dictionaries of tissue properties & modalities
 # -------------------------------------------------
@@ -58,11 +57,13 @@ signals = {t: mri_signal(tissues[t]["T1_ms"], tissues[t]["T2_ms"],
 # Contrast-to-noise ratio (CNR) between tumor and muscle
 # Assume noise σ_ref gives SNR_ref=20 at TE→0 for muscle
 sigma_noise         = signals["muscle"][0] / modalities["MRI"]["SNR_ref"] # page 77 of textbook, solve for σ_ref based on first value
-cnr_tumor_muscle    = np.abs(signals["tumor"] - signals["muscle"]) / sigma_noise  # This is an array of values; see also HW 9
+cnr_tumor_muscle    = cnr(signals["tumor"], signals["muscle"], sigma_noise)
+#np.abs(signals["tumor"] - signals["muscle"]) / sigma_noise  # This is an array of values; see also HW 9
 
 # -------------------------------------------------
 # 3. X-ray Contrast-to-Noise
 # -------------------------------------------------
+#TODO: investigate Aluminum filter, as seen in main2_abrac.py, considering updates to CNR
 energies_keV           = np.linspace(20, 150, 200) #NOTE: changed max from 120 to 150
 thickness_cm_path      = tissues["muscle"]["thickness_cm"] + tissues["tumor"]["thickness_cm"] # unused
 
@@ -92,7 +93,11 @@ snr_muscle  = I_muscle / np.sqrt(I_muscle) # mu(μ)=I. Since we assume noise fol
 #TODO: See if noise must be caluclated for all body flesh, not just the background (muscle)
 #NOTE: the above equation could be simplified, but is kept in this format for readability. In fact, the line of code only exists for readability.
 
-cnr_xray    = np.abs(cnr(I_tumor, I_muscle, np.sqrt(I_muscle)) - cnr(I_nerve, I_muscle, np.sqrt(I_muscle)))
+cnr_xray    = np.abs(
+    cnr(I_tumor, I_muscle, np.sqrt(I_muscle)) 
+    - cnr(I_nerve, I_muscle, np.sqrt(I_muscle))
+    )
+
 # CNR_xray = cnr_nerve_to_muscle - cnr_tumor_to_muscle
 # https://www.sciencedirect.com/topics/nursing-and-health-professions/contrast-to-noise-ratio#:~:text=%5B30%5D-,CNR,b,-where%20the%20numerator
 
@@ -124,7 +129,7 @@ boundary_index   = np.searchsorted(depths_cm,
                                    tissues["fat"]["thickness_cm"] + tissues["muscle"]["thickness_cm"])
 I_muscle_layer   = I_depth[boundary_index - 1]
 I_tumor_surface  = I_depth[boundary_index]
-cnr_ultrasound   = np.abs(I_tumor_surface - I_muscle_layer) / sigma_e
+cnr_ultrasound   = cnr(I_tumor_surface, I_muscle_layer, sigma_e)#np.abs(I_tumor_surface - I_muscle_layer) / sigma_e
 
 # =================================================
 #           🪄  BUILD THE TABBED PLOT WINDOW
@@ -161,11 +166,11 @@ ax.grid(True)
 ax.legend()
 
 # ---- X-ray CNR -----------------------------------------------------------------
-fig = window.add_figure_tab("X-ray CNR Tumor/Muscle", col=1)
+fig = window.add_figure_tab("X-ray: CNR Tumor/Muscle - CNR Nerve / Muscle", col=1)
 ax  = fig.add_subplot()
 ax.plot(energies_keV, cnr_xray)
 ax.set(xlabel="Energy (keV)", ylabel="CNR",
-       title="X-ray CNR (Tumor – Muscle)")
+       title="X-ray CNR (Tumor/Muscle) - CNR(Nerve/Muscle)")
 ax.grid(True)
 
 # ---- Ultrasound depth profile --------------------------------------------------
