@@ -1,0 +1,8 @@
+{
+    "MRI":        {"voxel_volume_mm3": 1.0,  "SNR_ref": 20.0, "noise_distribution": "Rician"},
+    "Ultrasound": {"input_intensity_W_cm2": 0.1, "electronic_noise_std_W_cm2": 0.001,
+                   "noise_distribution": "Gaussian + Rayleigh"},
+    "Xray_CT":    {"noise_distribution": "Poisson", "tube_voltage_kVp_max": 120,
+                   "tube_current_A_max": 300, "conversion_efficiency": 0.01,
+                   "detector_efficiency": 1}
+} 

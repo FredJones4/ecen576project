@@ -3,37 +3,29 @@ Medical-imaging contrast demo using AbracaTABra tabbed windows
 Requires:
     pip install "abracatabra[qt-pyside6]"   # or any other supported Qt binding
 """
-
+#TODO: update MRI, CT, and Ultrasound to include work for all the knobs.
+#TODO: update MRI CNR to be difference in CNR between Tumor and Nerve
 import numpy as np
 import abracatabra                      # ⭐ NEW
 # Matplotlib is still needed, but we let AbracaTABra create the figures
 import matplotlib.pyplot as plt
+import json
 # -------------------------------------------------
 # 1. Dictionaries of tissue properties & modalities
 # -------------------------------------------------
-tissues = {
-    "fat":    {"thickness_cm": 0.5, "shape": "cylinder shell", "density_g_per_cm3": 0.6,
-               "acoustic_absorption_db_cm_mhz": 0.9, "acoustic_speed_m_per_s": 1476,
-               "xray_mu_linear": -0.0004, "xray_mu_intercept": 0.196, "T1_ms": 337, "T2_ms": 98},
-    "muscle": {"thickness_cm": 3.0, "shape": "cylinder shell", "density_g_per_cm3": 0.9,
-               "acoustic_absorption_db_cm_mhz": 0.54, "acoustic_speed_m_per_s": 1580,
-               "xray_mu_linear": -0.0065, "xray_mu_intercept": 0.26,  "T1_ms": 1233, "T2_ms": 37},
-    "tumor":  {"thickness_cm": 1.0, "shape": "sphere",          "density_g_per_cm3": 0.8,
-               "acoustic_absorption_db_cm_mhz": 0.76, "acoustic_speed_m_per_s": 1564,
-               "xray_mu_linear": -0.0008, "xray_mu_intercept": 0.25,  "T1_ms": 1100, "T2_ms": 50},
-    "nerve":  {"thickness_cm": 0.5, "shape": "cylinder",        "density_g_per_cm3": 0.9,
-               "acoustic_absorption_db_cm_mhz": 0.9,  "acoustic_speed_m_per_s": 1630,
-               "xray_mu_linear": -0.0065, "xray_mu_intercept": 0.24,  "T1_ms": 1083, "T2_ms": 78},
-}
+import os
+# file_path = os.path.join(os.path.dirname(__file__), 'tissues.json')
+file_path = r'C:\Users\Owner\code_2025_spring\ecen576\project\python\tissues.json'
+with open(file_path, 'r') as f:
+    tissues = json.load(f)
 
-modalities = {
-    "MRI":        {"voxel_volume_mm3": 1.0,  "SNR_ref": 20.0, "noise_distribution": "Rician"},
-    "Ultrasound": {"input_intensity_W_cm2": 0.1, "electronic_noise_std_W_cm2": 0.001,
-                   "noise_distribution": "Gaussian + Rayleigh"},
-    "Xray_CT":    {"noise_distribution": "Poisson", "tube_voltage_kVp_max": 120,
-                   "tube_current_A_max": 300, "conversion_efficiency": 0.01,
-                   "detector_efficiency": 1},
-} 
+file_path_modalities = r'C:\Users\Owner\code_2025_spring\ecen576\project\python\modalities.json'
+
+with open(file_path_modalities,'r') as f:
+    modalities = json.load(f)
+
+
+
 def cnr(I_object, I_background, sigma):
     """Function for readability to generate CNR."""
     return np.abs(I_object - I_background)/sigma
@@ -63,6 +55,7 @@ cnr_tumor_muscle    = cnr(signals["tumor"], signals["muscle"], sigma_noise)
 # -------------------------------------------------
 # 3. X-ray Contrast-to-Noise
 # -------------------------------------------------
+#TODO: See if I should  reccomend CT over X-ray because of the needed image is apparently perpendicular to the arm
 #TODO: investigate Aluminum filter, as seen in main2_abrac.py, considering updates to CNR
 energies_keV           = np.linspace(20, 150, 200) #NOTE: changed max from 120 to 150
 thickness_cm_path      = tissues["muscle"]["thickness_cm"] + tissues["tumor"]["thickness_cm"] # unused

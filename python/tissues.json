@@ -1,0 +1,14 @@
+{
+    "fat":    {"thickness_cm": 0.5, "shape": "cylinder shell", "density_g_per_cm3": 0.6,
+               "acoustic_absorption_db_cm_mhz": 0.9, "acoustic_speed_m_per_s": 1476,
+               "xray_mu_linear": -0.0004, "xray_mu_intercept": 0.196, "T1_ms": 337, "T2_ms": 98},
+    "muscle": {"thickness_cm": 3.0, "shape": "cylinder shell", "density_g_per_cm3": 0.9,
+               "acoustic_absorption_db_cm_mhz": 0.54, "acoustic_speed_m_per_s": 1580,
+               "xray_mu_linear": -0.0065, "xray_mu_intercept": 0.26,  "T1_ms": 1233, "T2_ms": 37},
+    "tumor":  {"thickness_cm": 1.0, "shape": "sphere",          "density_g_per_cm3": 0.8,
+               "acoustic_absorption_db_cm_mhz": 0.76, "acoustic_speed_m_per_s": 1564,
+               "xray_mu_linear": -0.0008, "xray_mu_intercept": 0.25,  "T1_ms": 1100, "T2_ms": 50},
+    "nerve":  {"thickness_cm": 0.5, "shape": "cylinder",        "density_g_per_cm3": 0.9,
+               "acoustic_absorption_db_cm_mhz": 0.9,  "acoustic_speed_m_per_s": 1630,
+               "xray_mu_linear": -0.0065, "xray_mu_intercept": 0.24,  "T1_ms": 1083, "T2_ms": 78}
+}
