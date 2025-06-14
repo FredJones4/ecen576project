@@ -35,7 +35,7 @@ energies_eV  = energies_keV * 1e3
 
 # Aluminium filter attenuation
 RHO_AL    = 2.6989
-mu_rho_Al = np.array([xdb.mu_elam("Al", E) for E in energies_eV]) # array of absorption cross-section, photo-electric or total for an element; https://xraypy.github.io/XrayDB/xraydb.pdf
+mu_rho_Al = np.array([xdb.mu_elam("Al", E) for E in energies_eV]) # array of 'absorption cross-section, photo-electric or total for an element'; https://xraypy.github.io/XrayDB/xraydb.pdf
 mu_Al     = mu_rho_Al * RHO_AL
 T_filter  = np.exp(-mu_Al * modalities["Xray_CT"]["filter_total_Al_cm"])
 S0        = tungsten_brems_spectrum(energies_keV, modalities["Xray_CT"]["kVp"])

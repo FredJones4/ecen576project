@@ -95,7 +95,7 @@ sigma_muscle     = sigma_total[idx_boundary - 1]
 CNR_ultrasound   = np.abs(I_tumor_surface - I_muscle_layer) / sigma_muscle
 
 # -------------------------------------------------
-# 3. X-ray: polychromatic spectrum & bow-tie filter
+# 3. X-ray: polychromatic spectrum & bow-tie filter # All in the software ... widely used, good to implement ... just prevents noise from being amplified while correcting backprojection ...
 # -------------------------------------------------
 kVp          = 120.0
 energies_keV = np.linspace(20, kVp, 400)

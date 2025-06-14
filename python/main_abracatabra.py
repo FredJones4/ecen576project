@@ -66,22 +66,43 @@ def linear_attenuation(tissue, E_keV): # See p5/6 of project, with numbers
     m = tissues[tissue]["xray_mu_linear"]
     b = tissues[tissue]["xray_mu_intercept"]
     return m * E_keV + b
+# Required variables to tune over: 
+# Tube Voltage (kVp) - higher kVp → higher mean keV → greater penetration but lower contrast, in theory. Typically runs: https://howradiologyworks.com/xrayproduction/
+# Tube Current (mA) ↔ Photon Flux - Tube currents in general radiography range from 0.5 mA up to ≈ 1 000 mA: https://www.radiologycafe.com/frcr-physics-notes/x-ray-imaging/production-of-x-rays/
+#       All attenuation and CNR curves then scale linearly with I₀: doubling mA will double both I_tissue and the noise σ≈√I_tissue, improving SNR by √2. - 
+#       Linearly increases SNR and CNR at the cost of patient dosage
+# Exposure Duration (s) ↔ Total Photon Count - 
+#                           Radiography: Exposure times are often in the 1–200 ms range (0.001–0.2 s) to freeze motion and limit dose
+#                           CT:Corresponds to a range of 0.3s to 2s. https://radiologykey.com/computed-tomography-12/
 
 
 I0          = (modalities["Xray_CT"]["tube_voltage_kVp_max"]*modalities["Xray_CT"]["tube_current_A_max"])\
-                *modalities["Xray_CT"]["conversion_efficiency"]*modalities["Xray_CT"]["detector_efficiency"] 
+                *modalities["Xray_CT"]["conversion_efficiency"]*modalities["Xray_CT"]["detector_efficiency"] # Maximum starting intensity
 # I0 was 1.0, but ... calculating P = IV -> P_actual=P*conv_eff*detector_eff goes with the assumptions given.
-I_muscle    = I0 * np.exp(-linear_attenuation("muscle", energies_keV) * #TODO: update the ∑(μ * x) path based on where we are imaging through
-                          # TODO: see if we can make the assumption that CT and X-ray will have the same CNR, given different paths all around
+# V determines maximum energy of the photons ... will 300 A burn the patients?
+I_muscle    = I0 * np.exp(-linear_attenuation("muscle", energies_keV) * 
                           tissues["muscle"]["thickness_cm"])
+ #TODO: update the ∑(μ * x) path based on where we are imaging through
+                          # TODO: see if we can make the assumption that CT and X-ray will have the same CNR, given different paths all around
 I_tumor     = I0 * np.exp(-(linear_attenuation("tumor",  energies_keV) *
                           tissues["tumor"]["thickness_cm"]  +
                           linear_attenuation("muscle", energies_keV) *
-                          tissues["muscle"]["thickness_cm"]))
+
+                          (tissues["muscle"]["thickness_cm"] - tissues["tumor"]["thickness_cm"]) # subtract difference across
+                          
+                          ))
 I_nerve     = I0 * np.exp(-(linear_attenuation("nerve",  energies_keV) *
                           tissues["nerve"]["thickness_cm"]  +
+
                           linear_attenuation("muscle", energies_keV) *
-                          tissues["muscle"]["thickness_cm"]))
+
+                          (tissues["muscle"]["thickness_cm"] - tissues["nerve"]["thickness_cm"]) # subtract difference across
+                          
+                          
+                          
+                          )
+                          
+                          )
 snr_muscle  = I_muscle / np.sqrt(I_muscle) # mu(μ)=I. Since we assume noise follows Poisson Distribution, σ=√μ=√I. and SNR= μ/σ = I/√I.
 #TODO: See if noise must be caluclated for all body flesh, not just the background (muscle)
 #NOTE: the above equation could be simplified, but is kept in this format for readability. In fact, the line of code only exists for readability.
@@ -97,7 +118,7 @@ cnr_xray    = np.abs(
 # -------------------------------------------------
 # 4. Ultrasound attenuation profile
 # -------------------------------------------------
-freq_MHz   = 5.0
+freq_MHz   = 5.0 #TODO: create a range of values for this.
 depths_cm  = np.linspace(0,
                          tissues["fat"]["thickness_cm"] + tissues["muscle"]["thickness_cm"]
                          + tissues["tumor"]["thickness_cm"],
@@ -123,7 +144,7 @@ boundary_index   = np.searchsorted(depths_cm,
 I_muscle_layer   = I_depth[boundary_index - 1]
 I_tumor_surface  = I_depth[boundary_index]
 cnr_ultrasound   = cnr(I_tumor_surface, I_muscle_layer, sigma_e)#np.abs(I_tumor_surface - I_muscle_layer) / sigma_e
-
+#TODO: See if this is actually relevant
 # =================================================
 #           🪄  BUILD THE TABBED PLOT WINDOW
 # =================================================
