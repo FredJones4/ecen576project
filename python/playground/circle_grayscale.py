@@ -1,0 +1,44 @@
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+
+# Scale: 1 unit = 1 cm
+# Radii calculations
+tumor_radius = 1  # cm
+muscle_thickness = 3  # cm
+fat_thickness = 0.5  # cm
+muscle_outer_radius = tumor_radius + muscle_thickness
+outer_radius = muscle_outer_radius + fat_thickness
+
+nerve_radius = 0.5  # cm
+gap_to_tumor = 0.05  # 0.5 mm in cm
+nerve_center_dist = tumor_radius + gap_to_tumor + nerve_radius
+
+# Create figure
+fig, ax = plt.subplots(figsize=(6, 6))
+
+# Draw fat layer (light gray)
+fat = Circle((0, 0), outer_radius, color=str(0.9), zorder=1, label='Fat')
+
+# Draw muscle layer (medium-light gray)
+muscle = Circle((0, 0), muscle_outer_radius, color=str(0.7), zorder=2, label='Muscle')
+
+# Draw tumor (medium gray)
+tumor = Circle((0, 0), tumor_radius, color=str(0.5), zorder=3, label='Tumor')
+
+# Draw nerve (dark gray)
+nerve = Circle((-nerve_center_dist, 0), nerve_radius, color=str(0.3), zorder=4, label='Nerve')
+
+# Add to plot
+ax.add_patch(fat)
+ax.add_patch(muscle)
+ax.add_patch(tumor)
+ax.add_patch(nerve)
+
+# Configure plot
+ax.set_xlim(-outer_radius - 1, outer_radius + 1)
+ax.set_ylim(-outer_radius - 1, outer_radius + 1)
+ax.set_aspect('equal')
+ax.axis('off')
+
+plt.tight_layout()
+plt.show()

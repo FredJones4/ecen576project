@@ -74,7 +74,8 @@ def linear_attenuation(tissue, E_keV): # See p5/6 of project, with numbers
 # Exposure Duration (s) ↔ Total Photon Count - 
 #                           Radiography: Exposure times are often in the 1–200 ms range (0.001–0.2 s) to freeze motion and limit dose
 #                           CT:Corresponds to a range of 0.3s to 2s. https://radiologykey.com/computed-tomography-12/
-
+# NOTE: mA*s => N, number of photons counted ...
+modalities["Xray_CT"]["tube_current_A_max"] = 2 # Max amperage of 1 with exposure time of 2s
 
 I0          = (modalities["Xray_CT"]["tube_voltage_kVp_max"]*modalities["Xray_CT"]["tube_current_A_max"])\
                 *modalities["Xray_CT"]["conversion_efficiency"]*modalities["Xray_CT"]["detector_efficiency"] # Maximum starting intensity
