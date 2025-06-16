@@ -5,6 +5,25 @@ Put this in a file (e.g. multi_ct_demo.py) and run it.  Required
 packages: numpy, matplotlib, pandas, scikit-image 0.22+.
 
 Author: <your name / date>
+
+#NOTE: I0, as described in Beer-Lambert law, is normalized to 1. Choose whichever combination of input variables for this.
+We the code developers are not the experts in optimum safety levels, and leave that task for the 
+medical physicists. In any case, Photon count is reduced as intensity is normalized to 1.
+
+
+CT CNR calculated as follows: https://howradiologyworks.com/x-ray-cnr/
+conversion for HU units: https://radiopaedia.org/articles/hounsfield-unit?lang=us, used after calculations
+
+Best so far: 512 pixels, kev = 70.
+(pixels, kev) = (512, 35) also shows promising results.
+(pixels, kev) = (512, 20) is still very promising, given current setup. 
+
+pixel sizes 512, 1024, and 2048 show promising results. Though, nerve-to-muscle CNR is low enough that it may be considered too much. 512 is already very high.
+
+
+NOTE for when keV is not a constant anymore: may need to create more of a spectra.
+TODO: confirm that output value of CT matrix is also a mu value.
+TODO: see if error exists in pixel calculation; differs per pixel from table calcluation.
 """
 
 import numpy as np
@@ -69,7 +88,7 @@ def build_phantom(N: int, E_keV: float = 70.0):
         px_cm   – physical pixel size in cm
     """
     # physical pixel spacing so that the *full* body fits with a 1-px margin
-    field_cm = 2 * outer_radius                  # 9.0 cm
+    field_cm = 2 * outer_radius                  # 7.0 cm
     px_cm    = field_cm / N
 
     # coordinate grid centred at (0,0)
@@ -111,8 +130,9 @@ def hounsfield(mu: float, mu_water: float = 0.19) -> float:
     return 1000.0 * (mu - mu_water) / mu_water
 
 def cnr(I_obj, I_bg, N_pix: int):
-    """CNR with σ = √I_bg scaled by pixel-dependent factor."""
-    sigma = np.sqrt(I_bg) * _sigma_factor[N_pix]
+    """CNR with σ = √I_bg scaled by pixel-dependent factor. NOTE: sigma was abs-square rooted, since HU is often a negative number. 
+    NOTE: This code, again, assumes Poisson distribution of noise."""
+    sigma = np.sqrt(np.abs(I_bg)) * _sigma_factor[N_pix]
     return np.abs(I_obj - I_bg) / sigma
 
 # ---------------------------------------------------------------------
@@ -172,4 +192,4 @@ def demo(N: int = 512, E_keV: float = 70.0, show_images: bool = True):
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
     # choose 512, 1024 or 2048
-    demo(N=512, E_keV=70.0)
+    demo(N=512, E_keV=20.0)
