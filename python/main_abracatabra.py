@@ -75,11 +75,11 @@ def linear_attenuation(tissue, E_keV): # See p5/6 of project, with numbers
 #                           Radiography: Exposure times are often in the 1–200 ms range (0.001–0.2 s) to freeze motion and limit dose
 #                           CT:Corresponds to a range of 0.3s to 2s. https://radiologykey.com/computed-tomography-12/
 # NOTE: mA*s => N, number of photons counted ...
-modalities["Xray_CT"]["tube_current_A_max"] = 2 # Max amperage of 1 with exposure time of 2s
+# modalities["Xray_CT"]["tube_current_A_max"] = 2 # Max amperage of 1 with exposure time of 2s
 
 I0          = (modalities["Xray_CT"]["tube_voltage_kVp_max"]*modalities["Xray_CT"]["tube_current_A_max"])\
                 *modalities["Xray_CT"]["conversion_efficiency"]*modalities["Xray_CT"]["detector_efficiency"] # Maximum starting intensity
-# I0 was 1.0, but ... calculating P = IV -> P_actual=P*conv_eff*detector_eff goes with the assumptions given.
+# I0 was 1.0, but ... calculating P = IV -> P_actual=P*conv_eff*detector_eff goes with the assumptions given. THis works with I0 ... min1e5 ...
 # V determines maximum energy of the photons ... will 300 A burn the patients?
 I_muscle    = I0 * np.exp(-linear_attenuation("muscle", energies_keV) * 
                           tissues["muscle"]["thickness_cm"])
