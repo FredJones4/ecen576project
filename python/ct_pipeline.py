@@ -17,7 +17,7 @@ conversion for HU units: https://radiopaedia.org/articles/hounsfield-unit?lang=u
 Best so far: 512 pixels, kev = 70.
 (pixels, kev) = (512, 35) also shows promising results.
 (pixels, kev) = (512, 20) is still very promising, given current setup. 
-
+TODO: confirm dz occurs in Lambert law
 pixel sizes 512, 1024, and 2048 show promising results. Though, nerve-to-muscle CNR is low enough that it may be considered too much. 512 is already very high.
 
 
@@ -62,6 +62,13 @@ def linear_attenuation(tissue: str, E_keV: float) -> float:
 # ---------------------------------------------------------------------
 # 2.  CT pipeline exactly as in your reference implementation
 # ---------------------------------------------------------------------
+def add_poisson_noise(sino: np.ndarray, I0: float = 1e5) -> np.ndarray:
+    """Add quantum (shot) noise to a noiseless line‑integral sinogram."""
+    expected_counts = I0 * np.exp(-sino)          # Beer–Lambert [2]
+    noisy_counts    = np.random.poisson(expected_counts)  # Poisson [4,8]
+    noisy_counts    = noisy_counts.astype(float) + 1e-6    # allow true  EPS = 1e-6
+    return -np.log(noisy_counts / I0)
+
 def ct_pipeline(mu, *, angles=None, filter_name='ramp', circle=True):
     if mu.shape[0] != mu.shape[1]:
         raise ValueError("mu image must be square")
@@ -70,6 +77,7 @@ def ct_pipeline(mu, *, angles=None, filter_name='ramp', circle=True):
         angles = np.linspace(0., 180., N, endpoint=False)
 
     sino     = radon(mu, theta=angles, circle=circle)
+    # sino = add_poisson_noise(sino, I0=1) #TODO: uncomment for actually adding noise
     backproj = iradon(sino, theta=angles, filter_name=None,
                       circle=circle, preserve_range=True)
     fbp      = iradon(sino, theta=angles, filter_name=filter_name,
