@@ -1,168 +1,225 @@
 import numpy as np
-import random
 import matplotlib.pyplot as plt
-# ------------------------------------------------------------------
-# Basic material description
-# ------------------------------------------------------------------
-class Material:
-    def __init__(self, name, *, thickness, mu_a, ρ, c):
-        """
-        Parameters
-        ----------
-        thickness : float   # metres
-        mu_a      : float   # dB / (MHz·m)
-        ρ         : float   # kg / m³
-        c         : float   # m / s
-        """
-        self.name = name
-        self.Thickness = thickness
-        self.MuA       = mu_a
-        self.ρ         = ρ
-        self.c         = c
-        self.Z         = ρ * c          # acoustic impedance (Rayl)
 
 # ------------------------------------------------------------------
-# Example material library  (replace with real values as needed)
+# Basic material description (assignment units)
 # ------------------------------------------------------------------
-Fat    = Material('Fat',    thickness=0.010, mu_a= 0.5, ρ= 920, c=1478)
-Muscle = Material('Muscle', thickness=0.030, mu_a= 1.0, ρ=1050, c=1540)
-Tumor  = Material('Tumour', thickness=0.005, mu_a= 0.9, ρ=1030, c=1540)
-Nerve  = Material('Nerve',  thickness=0.003, mu_a= 0.8, ρ=1040, c=1540)
+class Material:
+    def __init__(self, name, *, thickness, mu_a, density, c):
+        self.name = name
+        self.Thickness = thickness   # [cm]
+        self.MuA = mu_a              # [dB/(MHz*cm)]
+        self.density = density       # [g/cm³]
+        self.c = c                   # [m/s]
+        self.Z = density * 1000 * c  # [kg/(m^2 s)]
+
+# Use values from your table (assignment)
+Fat    = Material('Fat',    thickness=0.5, mu_a=0.9,  density=0.6,  c=1476)
+Muscle = Material('Muscle', thickness=1,   mu_a=0.54, density=0.9,  c=1580) # Muscle thickness is 1cm if tumor sits in center 
+Tumor  = Material('Tumor',  thickness=1,   mu_a=0.76, density=0.8,  c=1564)
+Nerve  = Material('Nerve',  thickness=0.5, mu_a=0.9,  density=0.9,  c=1630)
 
 material_list = [Fat, Muscle, Tumor, Nerve]
 
 # ------------------------------------------------------------------
-# Helper coefficients (normal incidence)
+# Helper coefficients
 # ------------------------------------------------------------------
-def transmission(m1: Material, m2: Material) -> float:
-    """Amplitude transmission coefficient (normal incidence)."""
+def transmission(m1, m2):
     return 2 * m1.Z / (m1.Z + m2.Z)
 
-def reflection(m1: Material, m2: Material) -> float:
-    """Magnitude of reflection coefficient (normal incidence)."""
-    if m1 is m2:                         # same medium → no boundary
-        return 1.0
-    return abs(m2.Z - m1.Z) / (m2.Z + m1.Z)
-
-# ------------------------------------------------------------------
-# Random tumour–nerve gap   (2-5 mm → 0.002–0.005 m)
-# ------------------------------------------------------------------
-TN_gap = random.uniform(0.002, 0.005)
-
-# ------------------------------------------------------------------
-# Key depth boundaries inside the phantom
-# ------------------------------------------------------------------
-maxDepth = Fat.Thickness + Muscle.Thickness
-b1 = Fat.Thickness
-b2 = Fat.Thickness + Muscle.Thickness - Tumor.Thickness - TN_gap - Nerve.Thickness
-b3 = Fat.Thickness + Muscle.Thickness - TN_gap - Nerve.Thickness
-b4 = Fat.Thickness + Muscle.Thickness - Nerve.Thickness
-
-# ------------------------------------------------------------------
-# Spatial sampling
-# ------------------------------------------------------------------
-steps = 500                                # number of depth samples
-z     = np.linspace(0.0, maxDepth, steps)  # depth axis (m)
-
-# ------------------------------------------------------------------
-# Frequency sampling  (MHz)
-# ------------------------------------------------------------------
-frequencies = np.linspace(3, 15, 5)        # e.g. 3, 6, 9, 12, 15 MHz
-num_freqs   = frequencies.size
-dataNames   = [f"{f:.1f} MHz" for f in frequencies]
-
-# ------------------------------------------------------------------
-# Speckle (scalar factor per depth, Rayleigh-distributed)
-# ------------------------------------------------------------------
-sigma_speckle = 1.0 / np.sqrt(np.pi / 2)
-speckle       = np.random.rayleigh(scale=sigma_speckle, size=steps)
-
-# ------------------------------------------------------------------
-# Intensity initialisation
-# ------------------------------------------------------------------
-I0 = 1.0
-Is = np.full((steps, num_freqs), I0)
-matDepth = np.full(steps, Fat, dtype=object)   # <— new default fill
-
-# ------------------------------------------------------------------
-# Helper coefficients (normal incidence)
-# ------------------------------------------------------------------
 def reflection(m1, m2):
-    if (m1 is None) or (m2 is None) or (m1 is m2):
+    if m1 is m2:
         return 1.0
     return abs(m2.Z - m1.Z) / (m2.Z + m1.Z)
 
+# ------------------------------------------------------------------
+# Imaging system and protocol parameters
+# ------------------------------------------------------------------
+frequencies = np.array([3, 4, 6, 9, 12, 15])  # MHz
+num_freqs   = frequencies.size
+I0 = 0.1  # Input acoustic intensity [W/cm^2] (from assignment)
+electronic_noise_std = 0.001  # W/cm^2 (from assignment)
+MC_REPS = 1000                # Monte Carlo reps per freq/depth for stats
+
+
+
+# --- Pick average speed for path ---
+# (Or, if needed, use weighted average based on your actual geometry!)
+c_mean = np.mean([mat.c for mat in material_list])  # average speed in m/s
+
+# --- Calculate axial resolution for each frequency ---
+axial_resolution_mm = c_mean / (2 * frequencies * 1e6) * 1000  # result in mm
+
+print("Frequency (MHz)   Axial Resolution (mm)")
+for f, res in zip(frequencies, axial_resolution_mm):
+    print(f"{f:14.1f}   {res:20.3f}")
+
+# --- Optional: Plot axial resolution vs frequency ---
+import matplotlib.pyplot as plt
+plt.figure(figsize=(6,4))
+plt.plot(frequencies, axial_resolution_mm, marker="o")
+plt.xlabel("Frequency (MHz)")
+plt.ylabel("Axial Resolution (mm)")
+plt.title("Axial Resolution vs Frequency")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
 
 # ------------------------------------------------------------------
-# Depth‐wise propagation loop
+# Geometry: sum of thicknesses (all in cm)
 # ------------------------------------------------------------------
-for i, d in enumerate(z):
-    alpha   = np.zeros(num_freqs)            # running attenuation (dB)
-    T_coeff = np.ones(num_freqs)             # cumulative transmission
+depth_cm = Fat.Thickness + Muscle.Thickness + Tumor.Thickness + Nerve.Thickness
+steps = 200
+z_cm = np.linspace(0.0, depth_cm, steps)  # cm
+z_mm = z_cm * 10
 
-    # ------------------------ FAT ------------------------
-    if d > 0:
-        d1     = min(d, Fat.Thickness)
-        alpha += Fat.MuA * frequencies * d1 * 2         # two-way path
-        matDepth[i] = Fat
-
-    # ---------------------- MUSCLE 1 ---------------------
-    if d > Fat.Thickness:
-        T_coeff *= transmission(Fat, Muscle) * transmission(Muscle, Fat)
-        d2      = min(d, b2) - Fat.Thickness
-        alpha  += Muscle.MuA * frequencies * d2 * 2
-        matDepth[i] = Muscle
-
-    # ----------------------- TUMOUR ----------------------
-    if d > b2:
-        T_coeff *= transmission(Muscle, Tumor) * transmission(Tumor, Muscle)
-        d3      = min(d, b3) - b2
-        alpha  += Tumor.MuA * frequencies * d3 * 2
-        matDepth[i] = Tumor
-
-    # ---------------------- MUSCLE 2 ---------------------
-    if d > b3:
-        T_coeff *= transmission(Tumor, Muscle) * transmission(Muscle, Tumor)
-        d4      = min(d, b4) - b3
-        alpha  += Muscle.MuA * frequencies * d4 * 2
-        matDepth[i] = Muscle
-
-    # ----------------------- NERVE -----------------------
-    if d > b4:
-        T_coeff *= transmission(Muscle, Nerve) * transmission(Nerve, Muscle)
-        d5      = d - b4
-        alpha  += Nerve.MuA * frequencies * d5 * 2
-        matDepth[i] = Nerve
-
-    # ----------------- Intensity update -----------------
-    if i > 0:
-        Is[i] = (Is[i-1] *
-                 T_coeff *
-                 10.0 ** (-alpha / 10.0) *
-                 reflection(matDepth[i-1], matDepth[i]))
+# Which tissue at each depth?
+material_at_z = np.full_like(z_cm, None, dtype=object)
+for i, d in enumerate(z_cm):
+    if d < Fat.Thickness:
+        material_at_z[i] = Fat
+    elif d < Fat.Thickness + Muscle.Thickness:
+        material_at_z[i] = Muscle
+    elif d < Fat.Thickness + Muscle.Thickness + Tumor.Thickness:
+        material_at_z[i] = Tumor
     else:
-        Is[i] = I0
+        material_at_z[i] = Nerve
+
+# For attenuation, sum alpha*thickness for each layer up to current z
+layer_boundaries = np.cumsum([0, Fat.Thickness, Muscle.Thickness, Tumor.Thickness, Nerve.Thickness])
 
 # ------------------------------------------------------------------
-# House-keeping: avoid log(0) and apply speckle
+# For each freq, for each depth, simulate intensity including attenuation
 # ------------------------------------------------------------------
-Is[Is == 0.0] = 1e-10
-Is *= speckle[:, np.newaxis]                # broadcast along frequency axis
-
-# ------------------------------------------------------------------
-# Done — Is holds the simulated back-scatter intensity vs depth & freq
-# ------------------------------------------------------------------
-
-# ------------------------------------------------------------------
-# Plot: Intensity vs. Depth (one curve per frequency)
-# ------------------------------------------------------------------
-plt.figure(figsize=(6, 4))
+# Calculate improved Is with transmission/reflection losses
+Is = np.zeros((steps, num_freqs))
 for j, f in enumerate(frequencies):
-    plt.plot(z * 1000, Is[:, j], label=f"{f:.1f} MHz")   # depth to mm
+    for i, d in enumerate(z_cm):
+        intensity = I0
+        remaining = d
+        for l, mat in enumerate(material_list):
+            if remaining <= 0:
+                break
+            layer_len = min(mat.Thickness, remaining)
 
+            # Attenuation
+            total_attn = mat.MuA * f * layer_len
+            intensity *= 10 ** (-total_attn / 10)
+
+            # Transmission loss at interface (not at last layer)
+            if l < len(material_list) - 1 and remaining > layer_len:
+                next_mat = material_list[l + 1]
+                T = transmission(mat, next_mat)
+                intensity *= T
+
+            remaining -= layer_len
+
+        Is[i, j] = intensity  # Store improved intensity
+
+# SNR at max depth, with speckle + noise
+MC_REPS = 1000
+electronic_noise_std = 0.001  # W/cm^2 from assignment
+SNR_maxdepth = np.zeros(num_freqs)
+
+for j, f in enumerate(frequencies):
+    signals = []
+    for _ in range(MC_REPS):
+        # Multiplicative speckle (Rayleigh)
+        speckle = np.random.rayleigh(scale=1/np.sqrt(np.pi/2))
+        # Additive noise
+        noise = np.random.normal(0, electronic_noise_std)
+        measured = Is[-1, j] * speckle + noise
+        signals.append(measured)
+    signals = np.array(signals)
+    SNR_maxdepth[j] = np.abs(np.mean(signals)) / np.std(signals)
+
+SNR_db_maxdepth = 20 * np.log10(SNR_maxdepth)
+
+# Plot result
+import matplotlib.pyplot as plt
+plt.figure(figsize=(6,4))
+plt.plot(frequencies, SNR_db_maxdepth, marker="o")
+plt.xlabel("Frequency (MHz)")
+plt.ylabel("SNR at Max Depth (dB)")
+plt.title("SNR at Maximum Depth vs Frequency\nWith Transmission & Reflection Losses")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
+# ------------------------------------------------------------------
+# Monte Carlo simulation: SNR at each (depth, freq)
+# ------------------------------------------------------------------
+SNR = np.zeros((steps, num_freqs))
+for j, f in enumerate(frequencies):
+    for i in range(steps):
+        signals = []
+        for _ in range(MC_REPS):
+            # Multiplicative speckle
+            speckle = np.random.rayleigh(scale=1/np.sqrt(np.pi/2))  # mean ≈1
+            # Additive electronic noise
+            noise   = np.random.normal(0, electronic_noise_std)
+            measured = Is[i, j] * speckle + noise
+            signals.append(measured)
+        signals = np.array(signals)
+        SNR[i, j] = np.abs(np.mean(signals)) / np.std(signals)  # abs prevents mean flip at low SNR
+
+SNR_db = 20 * np.log10(SNR)
+SNR_db[np.isneginf(SNR_db)|np.isnan(SNR_db)] = np.nan  # Clean up -inf/nan for plotting
+
+# ------------------------------------------------------------------
+# Plot: Intensity vs. Depth (each frequency)
+# ------------------------------------------------------------------
+plt.figure(figsize=(7, 5))
+for j, f in enumerate(frequencies):
+    plt.plot(z_mm, Is[:, j], label=f"{f:.0f} MHz")
 plt.xlabel("Depth (mm)")
-plt.ylabel("Intensity (arb. units)")
-plt.title("Simulated Back‑scatter Intensity vs Depth")
+plt.ylabel("Simulated Backscatter Intensity (W/cm$^2$)")
+plt.title("Backscatter Intensity vs Depth")
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+# ------------------------------------------------------------------
+# Plot: SNR (dB) vs. Frequency at max depth
+# ------------------------------------------------------------------
+plt.figure(figsize=(7, 5))
+plt.plot(frequencies, SNR_db[-1, :], marker='o')
+plt.xlabel("Frequency (MHz)")
+plt.ylabel("SNR at Max Depth (dB)")
+plt.title("SNR vs Frequency at Maximum Depth")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# ------------------------------------------------------------------
+# Plot: SNR (dB) vs. Depth for highest frequency
+# ------------------------------------------------------------------
+plt.figure(figsize=(7, 5))
+plt.plot(z_mm, SNR_db[:, -1], label=f"{frequencies[-1]:.0f} MHz")
+plt.xlabel("Depth (mm)")
+plt.ylabel("SNR (dB)")
+plt.title(f"SNR vs Depth at {frequencies[-1]:.0f} MHz")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# ------------------------------------------------------------------
+# Print summary SNR table at key depths
+# ------------------------------------------------------------------
+print("Depth (mm)   """"  """ + "   ".join([f"{f:.0f} MHz" for f in frequencies]))
+for i in np.linspace(0, steps-1, 5, dtype=int):
+    row = SNR_db[i]
+    print(f"{z_mm[i]:6.1f}     " + "   ".join([f"{v:6.1f}" for v in row]))
+
+
+tumor_nerve_index = np.argmax(z_cm > (Fat.Thickness + Muscle.Thickness + Tumor.Thickness))
+for j, f in enumerate(frequencies):
+    nerve_signal = Is[tumor_nerve_index, j]
+    tumor_signal = Is[tumor_nerve_index-1, j]
+    cnr = abs(nerve_signal - tumor_signal) / np.sqrt(nerve_signal + tumor_signal)
+    print(f"CNR at tumor/nerve for {f} MHz: {cnr:.5f}")
+
+
+
