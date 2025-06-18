@@ -300,6 +300,6 @@ def demo(N: int = 512, E_keV: float = 70.0, I0: float | None = 5e4,
 if __name__ == "__main__":
     # quick sweep over dose levels for demonstration
     # NOTE: dose is an abstraction for the amount of photons going in I0, calculated from varying combinations of the parameters given in the sheet.
-    for dose in [ 1e5, 5e5, 1e6, None]:  # None = noiseless reference
+    for dose in [ 1e3, 1e4, 100, None]:  # None = noiseless reference
         print(f"\n=== I0 = {dose} photons per detector element ===")
         demo(N=512, E_keV=20.0, I0=dose, show_images=True)
