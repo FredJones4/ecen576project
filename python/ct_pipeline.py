@@ -168,7 +168,7 @@ def demo(N: int = 512, E_keV: float = 70.0, show_images: bool = True):
           .round({"μ (cm⁻¹)": 5, "HU": 1, "CNR_vs_muscle": 2}))
 
     # tumour-to-nerve CNR separate line
-    df.loc["tumor-to-nerve CNR"] = ["–", "–", round(cnr_tumor_nerve, 2)]
+    df.loc["tumor-to-nerve CNR"] = ["-", "-", round(cnr_tumor_nerve, 2)]
 
     # -----------------------------------------------------------------
     # visualisation
@@ -181,14 +181,14 @@ def demo(N: int = 512, E_keV: float = 70.0, show_images: bool = True):
             ("Filtered back-projection (Ram-Lak)", fbp, 'equal')]:
             plt.figure(figsize=(6, 6))
             plt.imshow(im, cmap='gray', aspect=aspect)
-            plt.title(f"{title}  –  {N}×{N} px,  {E_keV} keV")
+            plt.title(f"{title}  -  {N}*{N} px,  {E_keV} keV")
             plt.axis('off')
             plt.tight_layout()
 
         # phantom itself
         plt.figure(figsize=(6, 6))
         plt.imshow(mu_img, cmap='gray', extent=[-outer_radius, outer_radius]*2)
-        plt.title(f"μ phantom ({N}×{N}), pixel = {px_cm*10:.2f} mm")
+        plt.title(f"μ phantom ({N}*{N}), pixel = {px_cm*10:.2f} mm")
         plt.xlabel("x (cm)"); plt.ylabel("y (cm)")
         plt.colorbar(label="μ (cm⁻¹)")
         plt.gca().set_aspect('equal')
@@ -200,4 +200,4 @@ def demo(N: int = 512, E_keV: float = 70.0, show_images: bool = True):
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
     # choose 512, 1024 or 2048
-    demo(N=512, E_keV=20.0)
+    demo(N=512, E_keV=120)
