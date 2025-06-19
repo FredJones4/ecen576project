@@ -1,0 +1,25 @@
+﻿Anatomy,DFOV (cm),Matrix Size,Pixel Size (mm),Worst-Case Pixel (mm & Params),Best-Case Pixel (mm & Params),"Average-Case Pixel, Given Matrix Size (mm)",Num Pixels/ diameter of nerve (0.5 cm / (pixel size mm),Num Pixels/ diameter of tumor (1 cm / (pixel size mm)
+Wrist/Hand (min),10,256,0.390625,,,0.846354167,12.8,25.6
+Wrist/Hand (max),15,256,0.5859375,,,0.846354167,8.533333333,17.06666667
+Forearm/Elbow/Humerus (min),18,256,0.703125,,,0.846354167,7.111111111,14.22222222
+Forearm/Elbow/Humerus (max),22,256,0.859375,,,0.846354167,5.818181818,11.63636364
+Knee/Ankle/Leg (std),25,256,0.9765625,,,0.846354167,5.12,10.24
+Knee/Ankle/Leg (large),40,256,1.5625,"1.5625 mm (DFOV=40 cm, M=256)",,0.846354167,3.2,6.4
+Wrist/Hand (min),10,512,0.1953125,,,0.423177083,25.6,51.2
+Wrist/Hand (max),15,512,0.29296875,,,0.423177083,17.06666667,34.13333333
+Forearm/Elbow/Humerus (min),18,512,0.3515625,,,0.423177083,14.22222222,28.44444444
+Forearm/Elbow/Humerus (max),22,512,0.4296875,,,0.423177083,11.63636364,23.27272727
+Knee/Ankle/Leg (std),25,512,0.48828125,,,0.423177083,10.24,20.48
+Knee/Ankle/Leg (large),40,512,0.78125,,,0.423177083,6.4,12.8
+Wrist/Hand (min),10,1024,0.09765625,,,0.211588542,51.2,102.4
+Wrist/Hand (max),15,1024,0.146484375,,,0.211588542,34.13333333,68.26666667
+Forearm/Elbow/Humerus (min),18,1024,0.17578125,,,0.211588542,28.44444444,56.88888889
+Forearm/Elbow/Humerus (max),22,1024,0.21484375,,,0.211588542,23.27272727,46.54545455
+Knee/Ankle/Leg (std),25,1024,0.244140625,,,0.211588542,20.48,40.96
+Knee/Ankle/Leg (large),40,1024,0.390625,,,0.211588542,12.8,25.6
+Wrist/Hand (min),10,2048,0.048828125,,"0.048828125 mm (DFOV=10 cm, M=2048)",0.105794271,102.4,204.8
+Wrist/Hand (max),15,2048,0.073242188,,,0.105794271,68.26666667,136.5333333
+Forearm/Elbow/Humerus (min),18,2048,0.087890625,,,0.105794271,56.88888889,113.7777778
+Forearm/Elbow/Humerus (max),22,2048,0.107421875,,,0.105794271,46.54545455,93.09090909
+Knee/Ankle/Leg (std),25,2048,0.122070313,,,0.105794271,40.96,81.92
+Knee/Ankle/Leg (large),40,2048,0.1953125,,,0.105794271,25.6,51.2
